@@ -1,0 +1,92 @@
+# 🎯 QUICK REFERENCE - START YOUR SERVER
+
+## THE COMMAND
+```bash
+cd C:\Users\Soft Tech\Desktop\YojnaSathi\backend
+python -m uvicorn app.main:app --reload
+```
+
+---
+
+## EXPECTED OUTPUT
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000
+INFO:     Application startup complete
+```
+
+---
+
+## ACCESS POINTS
+- 🌐 API: http://localhost:8000/
+- 📚 Swagger UI: http://localhost:8000/docs
+- 📖 ReDoc: http://localhost:8000/redoc
+
+---
+
+## WHAT'S DIFFERENT
+| Before | After |
+|--------|-------|
+| ❌ Files at root | ✅ Organized in `app/` |
+| ❌ `backend.routes` imports | ✅ Relative imports (`.routes`) |
+| ❌ Missing `__init__.py` | ✅ All packages have `__init__.py` |
+| ❌ Wrong uvicorn command | ✅ `uvicorn app.main:app` |
+
+---
+
+## FOLDER CHANGES
+```
+backend/
+├── app/                    ← ALL code now here
+│   ├── main.py
+│   ├── routes/
+│   ├── services/
+│   ├── schemas/
+│   ├── models/
+│   ├── db/
+│   ├── utils/
+│   ├── ml/
+│   └── data/
+├── run.py                  ← Helper script (new)
+└── verify_structure.bat    ← Verification (new)
+```
+
+---
+
+## ALTERNATIVE METHODS
+
+### Use Python Script
+```bash
+cd backend
+python run.py
+```
+
+### With Custom Port
+```bash
+cd backend
+python run.py --port 8080
+```
+
+---
+
+## STOP THE SERVER
+Press `CTRL + C` in the terminal
+
+---
+
+## TROUBLESHOOTING
+
+**Q: Got "ModuleNotFoundError: No module named 'app'"**
+A: Make sure you're in the `backend/` directory first
+
+**Q: Got "ModuleNotFoundError: No module named 'fastapi'"**
+A: Activate venv first: `..\venv\Scripts\Activate.ps1`
+
+**Q: Port already in use**
+A: Use different port: `python run.py --port 8080`
+
+---
+
+## 🎉 DONE!
+Your FastAPI backend is now properly structured and ready to run.
+
+Start with the command above and enjoy! 🚀

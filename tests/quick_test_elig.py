@@ -12,7 +12,7 @@ print(f"✅ Got token")
 # Try eligibility check
 headers = {'Authorization': f'Bearer {token}'}
 elig_resp = requests.post('http://127.0.0.1:8000/schemes/check-eligibility', 
-    json={'age': 25, 'income': 30000, 'gender': 'male', 'is_student': True},
+    json={'age': 25, 'income': 30000, 'gender': 'male'},
     headers=headers
 )
 print(f'Status: {elig_resp.status_code}')

@@ -26,11 +26,14 @@ class EligibilityRequest(BaseModel):
         description="Gender: 'male', 'female', or 'other'",
         example="male"
     )
-    is_student: bool = Field(
-        ...,
-        description="Whether the user is currently a student",
-        example=False
-    )
+
+
+class EligibilityCheckRequest(BaseModel):
+    age: int = Field(..., description="User's age in years", example=25)
+    income: float = Field(..., description="Annual income in Indian Rupees", example=250000.0)
+    gender: str = Field(..., description="Gender: 'male', 'female', or 'other'", example='male')
+    caste: str = Field(..., description="Caste category: 'sc','st','obc','general'", example='general')
+    state: str = Field(..., description="State name or code", example='Maharashtra')
 
 
 class SchemeEligibilityReason(BaseModel):

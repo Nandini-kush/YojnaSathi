@@ -11,7 +11,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
 }) => {
-  const { isAuthenticated, isAdmin, loadFromStorage } = useAuthStore();
+  const { isAuthenticated, user, loadFromStorage } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Admin route but user is not admin
-  if (requiredRole === 'admin' && !isAdmin) {
+  if (requiredRole === 'admin' && user?.role !== 'admin' && !user?.is_admin) {
     return <Navigate to="/dashboard" replace />;
   }
 

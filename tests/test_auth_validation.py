@@ -127,8 +127,7 @@ try:
         json={
             "age": 30,
             "income": 750000,
-            "gender": "F",
-            "is_student": False
+            "gender": "F"
         }
     )
     assert resp.status_code == 200, f"Expected 200, got {resp.status_code}"

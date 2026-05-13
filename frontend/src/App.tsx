@@ -12,6 +12,8 @@ import AdminDashboard from '@pages/admin/AdminDashboard';
 import EligibilityCheck from '@pages/dashboard/EligibilityCheck';
 import History from '@pages/dashboard/History';
 import Recommendations from '@pages/dashboard/Recommendations';
+import SchemeDetail from '@pages/dashboard/SchemeDetail';
+import Profile from '@pages/dashboard/Profile';
 import NotFoundPage from '@pages/public/NotFoundPage';
 
 // Components
@@ -44,6 +46,14 @@ const App: React.FC = () => {
               }
             />
             <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/eligibility-check"
               element={
                 <ProtectedRoute>
@@ -64,6 +74,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Recommendations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scheme/:id"
+              element={
+                <ProtectedRoute>
+                  <SchemeDetail />
                 </ProtectedRoute>
               }
             />

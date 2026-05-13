@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, Loader2, Shield, CheckCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/context/authStore";
-import { authAPI } from "@/lib/api";
+import { authAPI, apiDiagnostics } from "@/api";
 import logo from "@/assets/yojnasathi_logo.png";
 
 export default function Login() {
@@ -14,14 +14,13 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { setUser, setToken, setAdmin } = useAuthStore();
+  const { setUser, setToken } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Validate inputs
       if (!email || !password) {
         toast({
           title: "Error",
@@ -32,30 +31,30 @@ export default function Login() {
         return;
       }
 
-      // Call login API
-      const response = await authAPI.login({ email, password });
+      const response = await authAPI.login(email, password);
       
-      if (response.data && response.data.access_token) {
-        // Store token and user info
-        setToken(response.data.access_token);
-        setUser(response.data.user || { email, name: email.split('@')[0] });
+      if (response && response.access_token) {
+        setToken(response.access_token);
         
-        // Check if user is admin
-        if (response.data.user?.is_admin || response.data.user?.role === 'admin') {
-          setAdmin(true);
-        }
+        const loggedInUser = {
+          email,
+          name: response.user?.name || email.split('@')[0],
+          role: response.user?.role || (response.user?.is_admin ? 'admin' : 'user'),
+          is_admin: response.user?.is_admin || response.user?.role === 'admin'
+        };
+        setUser(loggedInUser);
 
         toast({
           title: "Login Successful!",
           description: "Redirecting to your dashboard...",
         });
 
-        // Redirect to dashboard
         setTimeout(() => navigate("/dashboard"), 500);
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 
                            error.response?.data?.message ||
+                           error.message ||
                            "Login failed. Please check your credentials.";
       
       toast({
@@ -68,154 +67,195 @@ export default function Login() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setEmail("demo@example.com");
+    setPassword("password123");
+    setTimeout(() => {
+      const form = document.querySelector('form');
+      if (form) {
+        form.dispatchEvent(new Event('submit', { bubbles: true }));
+      }
+    }, 100);
+  };
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden items-center justify-center p-12">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 -left-20 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-          <div className="absolute -bottom-20 right-20 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-2000"></div>
+    <div className="min-h-screen flex bg-white selection:bg-blue-100 selection:text-blue-900">
+      {/* Left Panel - Premium Branding */}
+      <div className="hidden lg:flex flex-1 relative bg-slate-900 overflow-hidden items-center justify-center p-12">
+        {/* Abstract Background Elements */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen" />
+          <div className="absolute bottom-[0%] -right-[10%] w-[60%] h-[60%] bg-indigo-500/20 rounded-full blur-[100px] mix-blend-screen" />
+          <div className="absolute top-[40%] left-[30%] w-[50%] h-[50%] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen" />
         </div>
 
-        {/* Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 text-center max-w-md text-white"
-        >
+        {/* Branding Content */}
+        <div className="relative z-10 w-full max-w-lg text-white space-y-12">
           <motion.div
-            initial={{ scale: 0.5 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="mb-8 flex justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="space-y-6"
           >
-            <img
-              src={logo}
-              alt="YojnaSathi Logo"
-              className="h-20 md:h-24 w-auto object-contain"
-            />
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+              <ShieldCheck className="w-5 h-5 text-blue-400" />
+              <span className="text-sm font-medium tracking-wide">Secure Government Portal</span>
+            </div>
+            
+            <h1 className="text-5xl font-extrabold tracking-tight leading-[1.1]">
+              Unlock your <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+                entitlements.
+              </span>
+            </h1>
+            <p className="text-lg text-slate-300 leading-relaxed max-w-md">
+              Access the most comprehensive database of government schemes tailored specifically to your profile.
+            </p>
           </motion.div>
 
-          <h2 className="text-4xl font-bold mb-2">YojnaSathi</h2>
-          <p className="text-slate-300 text-lg leading-relaxed">
-            Your Gateway to Government Schemes
-          </p>
-
-          {/* Features */}
-          <div className="mt-12 space-y-4 text-left">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="space-y-5"
+          >
             {[
-              "Check eligibility for 100+ government schemes",
+              "Check eligibility for 100+ schemes instantly",
               "ML-powered personalized recommendations",
-              "Smart matching with high accuracy",
-            ].map((feature, index) => (
-              <motion.div
-                key={feature}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="flex items-center gap-3"
-              >
-                <div className="flex-shrink-0">
-                  <CheckCircle size={24} className="text-slate-300" />
+              "Bank-grade security and data privacy"
+            ].map((feature, idx) => (
+              <div key={idx} className="flex items-center gap-4 text-slate-200">
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-blue-400" />
                 </div>
-                <span className="text-slate-200">{feature}</span>
-              </motion.div>
+                <span className="font-medium">{feature}</span>
+              </div>
             ))}
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-12 xl:p-24 bg-white relative">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md space-y-8"
         >
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome back
-            </h1>
-            <p className="text-gray-600">
-              Login to access your government scheme portal
-            </p>
+          {/* Mobile Logo */}
+          <div className="flex lg:hidden justify-center mb-8">
+             <img src={logo} alt="YojnaSathi" className="h-16 w-auto" />
           </div>
 
-          {/* Form */}
+          <div className="space-y-2 text-center lg:text-left">
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
+            <p className="text-slate-500 font-medium">Please enter your details to sign in.</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-700">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                  <Mail className="w-5 h-5" />
+                </div>
                 <input
-                  id="email"
                   type="email"
-                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  placeholder="Enter your email"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                   required
                   disabled={isLoading}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-700">Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
                 <input
-                  id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  placeholder="Enter your password"
+                  className="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                   required
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20" />
+                <span className="text-sm font-medium text-slate-600">Remember me</span>
+              </label>
+              <button type="button" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Forgot password?
+              </button>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full group relative flex items-center justify-center gap-2 py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
             >
               {isLoading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Logging in...
-                </>
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Login to Dashboard"
+                <>
+                  <span className="relative z-10">Sign In</span>
+                  <ArrowRight className="w-4 h-4 relative z-10 transition-transform group-hover:translate-x-1" />
+                </>
               )}
             </button>
           </form>
 
-          {/* Register link */}
-          <p className="mt-8 text-center text-sm text-gray-600">
+          {/* Demo Login Banner */}
+          <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-1">Demo Account</p>
+              <p className="text-sm text-blue-800/80">Use demo credentials to quickly access the dashboard.</p>
+            </div>
+            <button
+              onClick={handleDemoLogin}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              Use Demo
+            </button>
+          </div>
+
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={() => apiDiagnostics.checkStatus()}
+              className="w-full text-xs font-medium text-slate-500 hover:text-slate-800 py-2 transition-colors"
+            >
+              🔧 Check API Status
+            </button>
+          )}
+
+          <p className="text-center text-sm font-medium text-slate-600">
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
-              className="text-blue-600 font-semibold hover:text-blue-700 transition"
+              className="text-blue-600 hover:text-blue-700 transition-colors font-semibold"
             >
-              Create one now
+              Create free account
             </button>
           </p>
         </motion.div>

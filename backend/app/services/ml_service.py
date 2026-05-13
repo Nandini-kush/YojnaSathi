@@ -124,7 +124,7 @@ class MLService:
         
         try:
             # Validate user data has required fields
-            required_fields = ['age', 'income', 'gender', 'category']
+            required_fields = ['age', 'income', 'gender', 'caste']
             missing = [f for f in required_fields if f not in user_data]
             if missing:
                 raise MLServiceException(

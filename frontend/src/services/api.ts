@@ -1,11 +1,13 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_PREFIX = '/api/v1';
+const FULL_BASE_URL = `${API_URL}${API_PREFIX}`;
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '10000');
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_URL,
+  baseURL: FULL_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',

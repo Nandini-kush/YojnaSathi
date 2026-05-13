@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@context/authStore';
-import { Menu, LogOut, Home } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import logo from '@/assets/yojnasathi_logo.png';
 
 export const Header: React.FC = () => {

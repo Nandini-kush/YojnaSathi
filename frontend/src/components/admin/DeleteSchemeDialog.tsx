@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import Button from '@components/Button';
+import { extractErrorMessage } from '@/lib/errorHandler';
 
 interface DeleteSchemeDialogProps {
   open: boolean;
@@ -26,7 +27,8 @@ const DeleteSchemeDialog: React.FC<DeleteSchemeDialogProps> = ({
       await onConfirm();
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     }
   };
 

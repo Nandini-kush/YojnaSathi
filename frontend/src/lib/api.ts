@@ -1,10 +1,13 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { Scheme } from '@/types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_PREFIX = '/api/v1';
+const FULL_BASE_URL = `${API_BASE_URL}${API_PREFIX}`;
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: FULL_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,16 +42,25 @@ export const authAPI = {
     api.post('/auth/register', data),
   
   login: (data: { email: string; password: string }) =>
-    api.post('/auth/login', data),
+    api.post('/auth/login', data).then((res) => res.data),
   
   logout: () => api.post('/auth/logout', {}),
 };
+
+// Types for API responses
+export interface EligibleSchemesResponse {
+  success: boolean;
+  count: number;
+  schemes: Scheme[];
+}
 
 // Schemes endpoints
 export const schemesAPI = {
   getAll: () => api.get('/schemes/'),
   
   getById: (id: string) => api.get(`/schemes/${id}`),
+  
+  getSchemeDetail: (id: number) => api.get(`/schemes/${id}`),
   
   createScheme: (data: any) => 
     api.post('/admin/schemes/', data),
@@ -58,6 +70,13 @@ export const schemesAPI = {
   
   deleteScheme: (id: string) => 
     api.delete(`/admin/schemes/${id}`),
+  
+  // Database-only eligible schemes endpoint (requires auth & query params)
+  getEligible: async (params: { age: number; income: number; gender?: string }): Promise<Scheme[]> => {
+    const response = await api.get<EligibleSchemesResponse>('/schemes/eligible', { params });
+    console.log('Eligible schemes API response:', response.data);
+    return response.data.schemes;
+  },
 };
 
 // User endpoints
@@ -68,13 +87,13 @@ export const userAPI = {
   
   getEligibleSchemes: () => api.get('/user-schemes/eligible'),
   
-  updateProfile: (data: any) => api.put('/user/profile', data),
+  updateProfile: (data: import('@/types/api').UpdateUserProfileRequest) => api.put('/user/profile', data),
 };
 
 // Eligibility endpoints - Checks eligibility and saves to history
 export const eligibilityAPI = {
   // POST /schemes/check-eligibility - Protected endpoint that saves to history
-  // Expects: { age, income (monthly), gender, is_student }
+  // Expects: { age, income (monthly), gender }
   check: (data: any) => api.post('/schemes/check-eligibility', data),
   
   getHistory: () => api.get('/user/eligibility-history'),

@@ -32,7 +32,6 @@ def save_eligibility_check(
         age=eligibility_data.age,
         income=eligibility_data.income,
         gender=eligibility_data.gender,
-        is_student=eligibility_data.is_student,
         eligible_count=eligible_count
     )
     db.add(history_entry)

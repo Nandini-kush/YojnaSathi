@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '@components/Button';
 import { Input } from '@components/ui/input';
+import { extractErrorMessage } from '@/lib/errorHandler';
 
 interface SchemeDialogProps {
   isOpen: boolean;
@@ -80,7 +81,8 @@ const SchemeDialog: React.FC<SchemeDialogProps> = ({
       await onSubmit(formData);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     }
   };
 

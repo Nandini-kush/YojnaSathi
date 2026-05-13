@@ -1,60 +1,97 @@
 import { create } from 'zustand';
+import { tokenStorage } from '../lib/axiosClient';
+
+export interface User {
+  id?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  [key: string]: any;
+}
 
 export interface AuthState {
-  user: any | null;
+  user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  isAdmin: boolean;
+  isLoading: boolean;
 }
 
 export interface AuthActions {
-  setUser: (user: any) => void;
+  setUser: (user: User) => void;
   setToken: (token: string) => void;
   logout: () => void;
   loadFromStorage: () => void;
-  setAdmin: (isAdmin: boolean) => void;
+  setLoading: (isLoading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState & AuthActions>((set) => ({
+export type AuthStore = AuthState & AuthActions;
+
+/**
+ * Production-grade authentication store using Zustand
+ * 
+ * Usage:
+ * const { user, isAuthenticated, setToken, logout } = useAuthStore();
+ */
+export const useAuthStore = create<AuthStore>((set) => ({
+  // State
   user: null,
   token: null,
   isAuthenticated: false,
-  isAdmin: false,
+  isLoading: false,
 
-  setUser: (user) => {
+  // Actions
+  setUser: (user: User) => {
     set({ user, isAuthenticated: !!user });
-    localStorage.setItem('user', JSON.stringify(user));
+    try {
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      console.error('Failed to persist user to storage:', error);
+    }
   },
 
-  setToken: (token) => {
-    set({ token });
-    localStorage.setItem('access_token', token);
+  setToken: (token: string) => {
+    set({ token, isAuthenticated: !!token });
+    tokenStorage.setToken(token);
   },
 
-  setAdmin: (isAdmin) => {
-    set({ isAdmin });
+  setLoading: (isLoading: boolean) => {
+    set({ isLoading });
   },
 
   logout: () => {
-    set({ user: null, token: null, isAuthenticated: false, isAdmin: false });
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    tokenStorage.clearToken();
   },
 
+  /**
+   * Load authentication state from localStorage on app startup
+   * Call this in your root App component
+   */
   loadFromStorage: () => {
-    const token = localStorage.getItem('access_token');
-    const user = localStorage.getItem('user');
+    try {
+      const token = tokenStorage.getToken();
+      const userJson = localStorage.getItem('user');
 
-    if (token && user) {
-      try {
+      if (token && userJson) {
+        const user = JSON.parse(userJson);
         set({
           token,
-          user: JSON.parse(user),
+          user,
           isAuthenticated: true,
         });
-      } catch (error) {
-        console.error('Failed to parse user from storage:', error);
+      } else {
+        // Clear any stale data
+        tokenStorage.clearToken();
       }
+    } catch (error) {
+      console.error('Failed to load auth state from storage:', error);
+      // Clear stale data on parse errors
+      tokenStorage.clearToken();
     }
   },
 }));

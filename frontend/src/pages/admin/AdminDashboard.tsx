@@ -38,7 +38,7 @@ interface RecentCheck {
   age: number;
   income: number;
   gender: string;
-  is_student: boolean;
+  /* is_student removed */
   eligible_count: number;
   created_at: string;
 }

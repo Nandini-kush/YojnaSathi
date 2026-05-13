@@ -42,9 +42,9 @@ def test_eligibility_history_flow():
         print(f"✅ Created test user: {test_user.name} (ID: {test_user.id})")
         
         # Simulate eligibility checks
-        check1 = EligibilityRequest(age=25, income=30000, gender="male", is_student=True)
-        check2 = EligibilityRequest(age=30, income=50000, gender="male", is_student=False)
-        check3 = EligibilityRequest(age=22, income=20000, gender="female", is_student=True)
+        check1 = EligibilityRequest(age=25, income=30000, gender="male")
+        check2 = EligibilityRequest(age=30, income=50000, gender="male")
+        check3 = EligibilityRequest(age=22, income=20000, gender="female")
         
         # Save first check
         history1 = save_eligibility_check(db, test_user.id, check1, eligible_count=5)
@@ -64,7 +64,7 @@ def test_eligibility_history_flow():
         
         for idx, record in enumerate(history, 1):
             print(f"   Check {idx}: Age={record.age}, Income={record.income}, "
-                  f"Student={record.is_student}, Eligible={record.eligible_count}")
+                  f"Eligible={record.eligible_count}")
         
         # Get summary
         summary = get_eligibility_history_summary(db, test_user.id)

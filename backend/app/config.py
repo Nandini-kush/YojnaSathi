@@ -35,7 +35,8 @@ settings = Settings()
 
 # Print configuration on startup (without secrets)
 if settings.ENVIRONMENT == "development":
-    print(f"📋 YojnaSathi Backend Config:")
+    # avoid emojis/characters that may not be supported by default encodings
+    print("YojnaSathi Backend Config:")
     print(f"   Environment: {settings.ENVIRONMENT}")
     print(f"   Database: {settings.DATABASE_URL[:50]}...")
     print(f"   CORS Origins: {settings.cors_origins_list}")

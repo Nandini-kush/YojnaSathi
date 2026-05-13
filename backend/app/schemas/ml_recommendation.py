@@ -7,7 +7,7 @@ from typing import List, Optional
 
 
 class UserProfileForML(BaseModel):
-    """User profile data for ML prediction."""
+    """User profile data for rule-based scheme filtering."""
     age: int = Field(
         ...,
         ge=18,
@@ -23,13 +23,18 @@ class UserProfileForML(BaseModel):
     )
     gender: str = Field(
         ...,
-        description="Gender: 'Male' or 'Female'",
-        example="Female"
+        description="Gender: 'Male', 'Female', etc.",
+        example="Male"
     )
     category: str = Field(
         ...,
         description="Category: 'General', 'OBC', 'SC', or 'ST'",
         example="General"
+    )
+    state: Optional[str] = Field(
+        default=None,
+        description="State (optional)",
+        example="Maharashtra"
     )
 
 
@@ -40,7 +45,7 @@ class SchemeForML(BaseModel):
     scheme_min_age: int
     scheme_max_age: int
     scheme_income_limit: float
-    scheme_category: str
+    scheme_caste: str
 
 
 class RecommendationResult(BaseModel):
@@ -89,3 +94,24 @@ class EligibilityCheckResponse(BaseModel):
         default_factory=list,
         description="Top 5 ML features contributing to prediction"
     )
+
+
+class SchemeRecommendation(BaseModel):
+    """Individual scheme recommendation in the response."""
+    id: int
+    name: str
+    eligible: bool
+    score: Optional[int] = Field(default=None, description="Ranking score")
+
+
+class MLRecommendResponse(BaseModel):
+    """ML recommendation endpoint response - always returns valid JSON."""
+    success: bool = Field(..., description="Whether recommendation was successful")
+    schemes: List[SchemeRecommendation] = Field(
+        default_factory=list,
+        description="List of eligible schemes, ranked by score (highest first)"
+    )
+    error: Optional[str] = Field(default=None, description="Error message if success=false")
+    total_schemes: Optional[int] = Field(default=None, description="Total schemes checked")
+    total_eligible: Optional[int] = Field(default=None, description="Total eligible schemes")
+    message: Optional[str] = Field(default=None, description="Additional message or status")

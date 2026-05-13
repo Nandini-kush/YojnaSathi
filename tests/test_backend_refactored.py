@@ -89,6 +89,18 @@ def test_auth():
         all_pass &= print_test(f"  ✓ Returns access_token", has_token)
         all_pass &= print_test(f"  ✓ Token type is bearer", has_bearer)
         token = data.get("access_token")
+
+        # new: check eligible schemes endpoint structure
+        print("\n1.4 GET /schemes/eligible (structured response)")
+        elig_resp = requests.get(f"{BASE_URL}/schemes/eligible", headers={"Authorization": f"Bearer {token}"})
+        if elig_resp.status_code == 200:
+            edata = elig_resp.json()
+            has_success = edata.get("success") is True
+            has_count = isinstance(edata.get("count"), int)
+            has_schemes = isinstance(edata.get("schemes"), list)
+            all_pass &= print_test("  ✓ Structured response", has_success and has_count and has_schemes)
+        else:
+            all_pass &= print_test("  ✓ GET /schemes/eligible status 200", False)
     else:
         all_pass &= print_test(f"  ✓ Status 200", False)
         print(f"  Error: {login_response.text}")
@@ -122,8 +134,7 @@ def test_eligibility(token):
         json={
             "age": 25,
             "income": 30000,
-            "gender": "male",
-            "is_student": True
+            "gender": "male"
         },
         headers=headers
     )
@@ -161,8 +172,7 @@ def test_eligibility(token):
         json={
             "age": 25,
             "income": 30000,
-            "gender": "male",
-            "is_student": False
+            "gender": "male"
         }
     )
     
@@ -186,8 +196,7 @@ def test_history(token):
         json={
             "age": 30,
             "income": 25000,
-            "gender": "female",
-            "is_student": False
+            "gender": "female"
         },
         headers=headers
     )

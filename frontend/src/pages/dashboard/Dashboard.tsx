@@ -1,434 +1,454 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  Shield,
   LogOut,
   User,
   Zap,
   FileText,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Briefcase,
+  TrendingUp,
+  AlertCircle,
+  ChevronRight,
+  Menu,
+  ArrowRight,
+  X,
+  Settings
 } from "lucide-react";
 import { useAuthStore } from "@/context/authStore";
-import { userAPI, mlAPI } from "@/lib/api";
+import { userAPI, schemesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { extractErrorMessage } from "@/lib/errorHandler";
+import { SchemeRecommendation } from "@/types/api";
 import logo from "@/assets/yojnasathi_logo.png";
+
+interface UserProfile {
+  age: number;
+  income: number;
+  gender: string;
+  caste: string;
+  state: string;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { toast } = useToast();
 
-  // State declarations - all hooks at top
   const [userName, setUserName] = useState<string>("User");
   const [isLoading, setIsLoading] = useState(true);
-  const [age, setAge] = useState("");
-  const [income, setIncome] = useState("");
-  const [gender, setGender] = useState("");
-  const [category, setCategory] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userProfile, setUserProfile] = useState<{
-    age: number;
-    income: number;
-    gender: string;
-    category: string;
-  } | null>(null);
-  const [recommendedSchemes, setRecommendedSchemes] = useState<any[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
+  
+  const [recommendedSchemes, setRecommendedSchemes] = useState<SchemeRecommendation[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Load user data on component mount
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        setIsLoading(true);
-
-        if (user?.name) {
-          setUserName(user.name);
-        } else {
-          try {
-            const response = await userAPI.getProfile();
-            if (response.data?.name) {
-              setUserName(response.data.name);
-            }
-          } catch (err) {
-            setUserName(user?.name || "User");
-          }
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadUserData();
   }, [user]);
 
-  // Handle logout
+  const loadUserData = async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await userAPI.getProfile();
+      const data = response.data;
+      
+      if (data?.name) {
+        setUserName(data.name);
+      } else if (user?.name) {
+        setUserName(user.name);
+      }
+
+      const profileComplete = data && data.age > 0 && data.gender && data.caste && data.state;
+      
+      if (!profileComplete) {
+        setIsProfileIncomplete(true);
+        setUserProfile(null);
+      } else {
+        setIsProfileIncomplete(false);
+        setUserProfile({
+          age: data.age,
+          income: data.income,
+          gender: data.gender,
+          caste: data.caste,
+          state: data.state
+        });
+        
+        // Auto-fetch schemes if profile is complete
+        fetchSchemes();
+      }
+      
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      setIsProfileIncomplete(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSchemes = async () => {
+    try {
+      setIsRefreshing(true);
+      setApiError(null);
+      
+      const schemesList = await schemesAPI.getEligible({} as any); // params are ignored in updated lib/api.ts or by backend
+
+      const schemes = schemesList.map((s: any) => ({
+        id: s.id,
+        name: s.scheme_name || s.name || s.schemeName || 'Untitled Scheme',
+        eligible: true,
+        score: s.score || 0,
+        raw: s,
+      }));
+
+      setRecommendedSchemes(schemes);
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      setApiError(errorMessage);
+      setRecommendedSchemes([]);
+      
+      toast({
+        title: "Error fetching schemes",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // Handle eligibility check form submission
-  const handleEligibilityCheck = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!age || !income || !gender || !category) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setApiError(null);
-      const ageNum = parseInt(age);
-      const incomeNum = parseInt(income);
-
-      // Store user profile data (form data)
-      const profileData = {
-        age: ageNum,
-        income: incomeNum,
-        gender,
-        category,
-      };
-      setUserProfile(profileData);
-
-      console.log("📤 Calling /ml/recommend with:", profileData);
-
-      // Call ML recommendation endpoint (POST /ml/recommend)
-      // This endpoint expects: age, income (annual), gender, category
-      const mlResponse = await mlAPI.recommend(profileData);
-      
-      console.log("✅ ML recommend response:", mlResponse.data);
-
-      if (mlResponse.data?.recommended_schemes) {
-        setRecommendedSchemes(mlResponse.data.recommended_schemes);
-      } else if (mlResponse.data) {
-        setRecommendedSchemes(Array.isArray(mlResponse.data) ? mlResponse.data : []);
-      }
-
-      toast({
-        title: "Success",
-        description: "Eligibility check and recommendations completed!",
-      });
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || "Failed to check eligibility";
-      setApiError(errorMessage);
-      console.error("❌ Error checking eligibility:", error);
-      console.error("Full error response:", error.response);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  // Main render - single return statement with complete JSX
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onClick={() => navigate("/dashboard")}>
-            <img src={logo} alt="YojnaSathi Logo" className="h-10 w-auto object-contain" />
-          </div>
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
+      {/* Premium Sticky Navigation */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/dashboard")}>
+              <img src={logo} alt="YojnaSathi Logo" className="h-8 w-auto" />
+              <span className="font-bold text-lg text-slate-900 hidden sm:block">YojnaSathi Dashboard</span>
+            </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">{userName}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-            >
-              <LogOut size={18} />
-              <span className="text-sm">Logout</span>
-            </button>
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={() => navigate("/profile")}
+                className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors flex items-center gap-1"
+              >
+                <Settings size={16} />
+                Profile
+              </button>
+              <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-slate-700">{userName}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-sm font-medium text-slate-600 hover:text-red-600 transition-colors flex items-center gap-1"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </div>
+
+            {/* Mobile Nav Toggle */}
+            <div className="md:hidden flex items-center">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-slate-600">
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      >
-        {/* Welcome Section */}
-        <div className="flex items-start gap-4 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Zap size={24} className="text-white" />
-          </div>
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="md:hidden bg-white border-b border-slate-200 px-4 py-4 space-y-4"
+          >
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900">{userName}</p>
+                <p className="text-xs text-slate-500">Citizen Profile</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full text-left text-sm font-medium text-slate-700 hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Settings size={16} />
+              Edit Profile
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Logout
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {isProfileIncomplete && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm"
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-amber-100 rounded-full text-amber-600 mt-1">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-amber-900">Incomplete Profile</h3>
+                <p className="text-amber-800 text-sm mt-1">
+                  Please complete your profile to see accurate and personalized government scheme eligibility matches.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/profile")}
+              className="whitespace-nowrap px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl transition-colors shadow-sm"
+            >
+              Complete Profile
+            </button>
+          </motion.div>
+        )}
+
+        {/* Welcome & Stats Row */}
+        <div className="mb-8 flex justify-between items-end">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-1">
-              Welcome back, {userName}!
-            </h2>
-            <p className="text-gray-600">
-              Check your eligibility and get personalized scheme recommendations
-            </p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, {userName}</h1>
+            <p className="text-slate-600">Here's your government schemes portal overview.</p>
           </div>
+          {!isProfileIncomplete && (
+            <button
+              onClick={fetchSchemes}
+              disabled={isRefreshing}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
+            >
+              <Zap size={16} className={isRefreshing ? "animate-pulse text-blue-600" : "text-blue-600"} />
+              Refresh Matches
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Briefcase size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total Schemes</p>
+              <p className="text-2xl font-bold text-slate-900">100+</p>
+            </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+              <CheckCircle size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Eligible Matches</p>
+              <p className="text-2xl font-bold text-slate-900">{recommendedSchemes.length}</p>
+            </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Profile Status</p>
+              <p className="text-2xl font-bold text-slate-900">{isProfileIncomplete ? 'Pending' : 'Analyzed'}</p>
+            </div>
+          </motion.div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Profile Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1 bg-white rounded-2xl border-t-4 border-blue-600 shadow-lg p-8"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <User size={20} className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Your Profile</h3>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            {userProfile ? (
-              <div className="space-y-4">
-                <div className="pb-4 border-b border-gray-200">
-                  <label className="text-sm font-medium text-gray-600">Age</label>
-                  <p className="text-lg font-semibold text-gray-900">{userProfile.age} years</p>
-                </div>
-                <div className="pb-4 border-b border-gray-200">
-                  <label className="text-sm font-medium text-gray-600">Annual Income</label>
-                  <p className="text-lg font-semibold text-gray-900">₹{userProfile.income.toLocaleString('en-IN')}</p>
-                </div>
-                <div className="pb-4 border-b border-gray-200">
-                  <label className="text-sm font-medium text-gray-600">Gender</label>
-                  <p className="text-lg font-semibold text-gray-900 capitalize">{userProfile.gender}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Category</label>
-                  <p className="text-lg font-semibold text-gray-900 uppercase">{userProfile.category}</p>
+          {/* Recommendations Section */}
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 h-full"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle size={20} className="text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Your Matches</h2>
+                    <p className="text-sm text-slate-500">Schemes you are eligible for based on your profile.</p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="text-6xl mb-4">👤</div>
-                <p className="text-gray-600 text-center">
-                  Submit your details to see your profile summary
-                </p>
-              </div>
-            )}
-          </motion.div>
 
-          {/* Eligibility Check Card */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white rounded-2xl border-t-4 border-purple-600 shadow-lg p-8"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText size={20} className="text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Check Your Eligibility</h3>
-            </div>
-
-            <p className="text-gray-600 mb-6">
-              Enter your details to get ML-powered scheme recommendations
-            </p>
-
-            <form onSubmit={handleEligibilityCheck} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Age <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    placeholder="Enter your age"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    required
-                    disabled={isSubmitting}
-                    min="0"
-                    max="120"
-                  />
+              {isRefreshing ? (
+                <div className="py-12 flex flex-col items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+                  <p className="text-slate-500 font-medium">Scanning scheme database...</p>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Annual Income (₹) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={income}
-                    onChange={(e) => setIncome(e.target.value)}
-                    placeholder="Enter annual income"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    required
-                    disabled={isSubmitting}
-                    min="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Gender <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    required
-                    disabled={isSubmitting}
+              ) : isProfileIncomplete ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                    <FileText size={24} className="text-slate-400" />
+                  </div>
+                  <p className="text-slate-600 font-medium max-w-sm mb-4">Submit your details in your profile to reveal your personalized scheme matches.</p>
+                  <button
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors"
                   >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
+                    Go to Profile <ArrowRight size={16} />
+                  </button>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    required
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Select category</option>
-                    <option value="general">General</option>
-                    <option value="obc">OBC</option>
-                    <option value="sc">SC</option>
-                    <option value="st">ST</option>
-                  </select>
+              ) : apiError ? (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-sm">Failed to fetch recommendations</p>
+                    <p className="text-sm mt-1 opacity-90">{apiError}</p>
+                  </div>
                 </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={20} />
-                    Check Eligibility & Get Recommendations
-                  </>
-                )}
-              </button>
-            </form>
-          </motion.div>
-        </div>
-
-        {/* Recommendations Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl border-t-4 border-green-600 shadow-lg p-8"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText size={20} className="text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Scheme Recommendations</h3>
+              ) : recommendedSchemes.length > 0 ? (
+                <div className="space-y-4">
+                  {recommendedSchemes.map((scheme, idx) => (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      key={scheme.id || idx}
+                      onClick={() => navigate(`/scheme/${scheme.id}`)}
+                      className="group p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer bg-white flex items-center justify-between gap-4"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-700">
+                            Eligible
+                          </span>
+                          {typeof scheme.score === 'number' && scheme.score > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                              Score: {scheme.score}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{scheme.name}</h4>
+                        <p className="text-sm text-slate-500 mt-1">Ref ID: {scheme.id}</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors">
+                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600" />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 flex flex-col items-center justify-center text-center">
+                  <p className="text-slate-600 font-medium">No schemes found matching your specific criteria.</p>
+                </div>
+              )}
+            </motion.div>
           </div>
 
-          <p className="text-gray-600 mb-8">
-            Submit your details above to receive ML-powered scheme recommendations
-          </p>
-
-          {isSubmitting ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 size={32} className="text-blue-600 animate-spin mb-4" />
-              <p className="text-gray-600">Analyzing your profile and finding recommendations...</p>
-            </div>
-          ) : !userProfile ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <FileText size={32} className="text-gray-400" />
-              </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Ready to Analyze</h4>
-              <p className="text-gray-600 text-center max-w-md">
-                Your personalized scheme recommendations will appear here after you submit your details
-              </p>
-            </div>
-          ) : apiError ? (
-            <div className="flex flex-col items-center justify-center py-8 bg-red-50 rounded-lg border border-red-200 p-6">
-              <p className="text-red-600 text-center font-semibold mb-2">Error fetching recommendations</p>
-              <p className="text-red-500 text-sm">{apiError}</p>
-            </div>
-          ) : recommendedSchemes.length > 0 ? (
-            <div className="space-y-4">
-              {recommendedSchemes.map((scheme, index) => (
-                <motion.div
-                  key={scheme.scheme_id || index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200"
+          {/* Profile Sidebar */}
+          <div className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-24"
+            >
+              <div className="bg-slate-900 px-6 py-8 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/20 to-transparent pointer-events-none" />
+                <div className="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-slate-800 relative z-10">
+                  <User size={32} className="text-slate-400" />
+                </div>
+                <h3 className="mt-4 text-xl font-bold text-white relative z-10">{userName}</h3>
+                <p className="text-slate-400 text-sm relative z-10">Citizen Profile</p>
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="mt-4 px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-full transition-colors relative z-10 inline-flex items-center gap-1"
                 >
-                  <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CheckCircle size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900">{scheme.scheme_name}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-medium bg-green-200 text-green-800 px-2 py-1 rounded">
-                        {scheme.eligible ? "Eligible" : "Not Eligible"}
-                      </span>
-                      {scheme.probability && (
-                        <span className="text-xs text-gray-600">
-                          Match: {(scheme.probability * 100).toFixed(0)}%
-                        </span>
-                      )}
+                  <Settings size={14} /> Edit
+                </button>
+              </div>
+
+              <div className="p-6">
+                {!isProfileIncomplete && userProfile ? (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Analyzed Details</h4>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-500">Age</span>
+                      <span className="font-semibold text-slate-900">{userProfile.age} yrs</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-500">Income</span>
+                      <span className="font-semibold text-slate-900">₹{userProfile.income.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-500">Gender</span>
+                      <span className="font-semibold text-slate-900 capitalize">{userProfile.gender}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-500">Caste</span>
+                      <span className="font-semibold text-slate-900 uppercase">{userProfile.caste}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium text-slate-500">State</span>
+                      <span className="font-semibold text-slate-900 capitalize">{userProfile.state}</span>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <p className="text-gray-600">No schemes found matching your criteria</p>
-            </div>
-          )}
-        </motion.div>
-      </motion.div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-slate-500 mb-4">Your profile is incomplete. We need your details to match schemes.</p>
+                    <button
+                      onClick={() => navigate("/profile")}
+                      className="px-4 py-2 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 transition-colors w-full text-sm"
+                    >
+                      Complete Profile
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </main>
 
       {/* Footer */}
-      <footer className="mt-12 bg-gray-900 text-white py-8 border-t">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield size={24} />
-            <span className="font-bold">YojnaSathi</span>
-          </div>
-          <p className="text-sm text-gray-400">
-            Made with ❤️ for Indian Citizens • © 2026 YojnaSathi
-          </p>
-        </div>
+      <footer className="mt-20 bg-white border-t border-slate-200 py-8 text-center text-slate-500 text-sm">
+        <p>© 2026 YojnaSathi. Designed for Indian Citizens.</p>
       </footer>
     </div>
   );

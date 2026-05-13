@@ -25,7 +25,7 @@ from .routes import (
     user_schemes
 )
 
-# Import ML service for initialization
+# ML service initialization DISABLED - ML module disabled for now
 from .services.ml_service import initialize_ml_service, MLServiceException
 
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ def startup():
         logger.error(f"Error creating database tables: {e}", exc_info=True)
         raise
     
-    # Initialize ML service (loads model once)
+    # ML service initialization DISABLED - ML module disabled for now
     try:
         initialize_ml_service()
         logger.info("✓ ML Service initialized successfully at startup")
@@ -146,26 +146,28 @@ def startup():
         logger.error(f"Unexpected error initializing ML Service: {e}", exc_info=True)
 
 # -------------------------
-# Routers
+# API Routers (Versioned)
 # -------------------------
 
+API_PREFIX = "/api/v1"
+
 # Public APIs
-app.include_router(auth.router)
-app.include_router(schemes.router)
+app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(schemes.router, prefix=API_PREFIX)
 
 # Protected User APIs
-app.include_router(user_profile.router)
-app.include_router(eligibility.router)
-app.include_router(user_schemes.router)
-app.include_router(eligibility_history.router)
+app.include_router(user_profile.router, prefix=API_PREFIX)
+app.include_router(eligibility.router, prefix=API_PREFIX)
+app.include_router(user_schemes.router, prefix=API_PREFIX)
+app.include_router(eligibility_history.router, prefix=API_PREFIX)
 
-# ML APIs (should be protected internally)
-app.include_router(ml_recommend.router)
+# ML APIs DISABLED - ML module disabled for now
+app.include_router(ml_recommend.router, prefix=API_PREFIX)
 
 # Admin APIs
-app.include_router(admin_auth.router)
-app.include_router(admin_schemes.router)
-app.include_router(admin_stats.router)
+app.include_router(admin_auth.router, prefix=API_PREFIX)
+app.include_router(admin_schemes.router, prefix=API_PREFIX)
+app.include_router(admin_stats.router, prefix=API_PREFIX)
 
 # -------------------------
 # Root

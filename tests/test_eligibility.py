@@ -17,22 +17,20 @@ def test_eligible_schemes():
     print("=" * 60)
     
     # Test case 1: Young student with low income
-    print("\nTest 1: Young student (age=22, income=10000, student=true)")
+    print("\nTest 1: Young adult (age=22, income=10000)")
     result = get_eligible_schemes(
         age=22,
         income=10000,
-        gender='female',
-        is_student=True
+        gender='female'
     )
     print(f"  → Found {len(result)} eligible schemes")
     
     # Test case 2: Older professional with higher income
-    print("\nTest 2: Older professional (age=45, income=50000, student=false)")
+    print("\nTest 2: Older professional (age=45, income=50000)")
     result = get_eligible_schemes(
         age=45,
         income=50000,
-        gender='male',
-        is_student=False
+        gender='male'
     )
     print(f"  → Found {len(result)} eligible schemes")
     
@@ -42,7 +40,6 @@ def test_eligible_schemes():
         age=30,
         income=25000,
         gender='male',
-        is_student=False,
         caste='sc'
     )
     print(f"  → Found {len(result)} eligible schemes")
@@ -53,10 +50,50 @@ def test_eligible_schemes():
         age=25,
         income=20000,
         gender='female',
-        is_student=True,
         state='MH'
     )
     print(f"  → Found {len(result)} eligible schemes")
+
+    # Additional normalization tests
+    print("\nTest 5: State normalization - MP vs Madhya Pradesh")
+    # scheme object used internally by service is pulled from DB so we simulate using
+    # the already-populated database; this test simply ensures no exception and at
+    # least one result is returned for a two-equivalent strings.
+    res_mp = get_eligible_schemes(age=22, income=10000, gender='female', state='MP')
+    res_full = get_eligible_schemes(age=22, income=10000, gender='female', state='madhya pradesh')
+    print(f"  MP count: {len(res_mp)}, full name count: {len(res_full)}")
+
+    # Fallback behaviour: monkeypatch SessionLocal so that DB returns a non-eligible
+    # scheme; get_eligible_schemes should return it with a score of 0 and
+    # get_eligible_schemes_for_user should propagate the fallback flag.
+    print("\nTest 6: Fallback when no eligible schemes are found")
+    from types import SimpleNamespace
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+        def all(self):
+            # one scheme that won't match the provided criteria
+            return [SimpleNamespace(is_active=True, priority=99, min_age=0, max_age=1,
+                                     min_income=0, max_income=1, gender=None, caste=None, state=None)]
+    class DummySession:
+        def query(self, model):
+            return DummyQuery()
+        def close(self):
+            pass
+    import backend.app.services.eligibility_service as svc
+    original = svc.SessionLocal
+    svc.SessionLocal = lambda: DummySession()
+    try:
+        lst, flag = get_eligible_schemes(age=1000, income=0)
+        print(f"  Fallback result list: {lst}, flag={flag}")
+        assert lst and lst[0].get('score') == 0 and flag
+        # also test wrapper function
+        fake_user = SimpleNamespace(id=123, age=1000, income=0, gender=None, caste=None, state=None)
+        lst2, flag2 = svc.get_eligible_schemes_for_user(db=None, user=fake_user)
+        print(f"  Wrapper returned count={len(lst2)}, fallback={flag2}")
+        assert flag2
+    finally:
+        svc.SessionLocal = original
     
     print("\n" + "=" * 60)
     print("Schema Validation Test")
@@ -68,8 +105,7 @@ def test_eligible_schemes():
         req = EligibilityRequest(
             age=25,
             income=30000,
-            gender='female',
-            is_student=True
+            gender='female'
         )
         print(f"  ✓ Valid request: {req.model_dump()}")
     except Exception as e:
@@ -82,8 +118,7 @@ def test_eligible_schemes():
         req = EligibilityRequest(
             age=150,  # Too old
             income=30000,
-            gender='female',
-            is_student=True
+            gender='female'
         )
         print(f"  ✗ Should have rejected age=150")
         sys.exit(1)
@@ -96,8 +131,7 @@ def test_eligible_schemes():
         req = EligibilityRequest(
             age=25,
             income=-100,  # Negative
-            gender='female',
-            is_student=True
+            gender='female'
         )
         print(f"  ✗ Should have rejected negative income")
         sys.exit(1)

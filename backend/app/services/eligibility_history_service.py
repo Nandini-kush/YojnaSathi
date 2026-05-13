@@ -24,8 +24,7 @@ def check_eligibility_public(data: EligibilityRequest):
     schemes = get_eligible_schemes(
         age=data.age,
         income=data.income,
-        gender=data.gender,
-        is_student=data.is_student
+        gender=data.gender
     )
 
     return {

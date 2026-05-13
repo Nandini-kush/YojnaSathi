@@ -1,5 +1,4 @@
 import { forwardRef } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface InputProps

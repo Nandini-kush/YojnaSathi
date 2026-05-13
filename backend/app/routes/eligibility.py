@@ -38,7 +38,7 @@ def check_eligibility_with_history(
     - Returns eligible schemes with full details
     
     Args:
-        user_data: Eligibility request data (age, income, gender, is_student)
+        user_data: Eligibility request data (age, income, gender)
         current_user: Authenticated user from JWT token
         db: Database session
     
@@ -57,8 +57,8 @@ def check_eligibility_with_history(
         eligible = get_eligible_schemes(
             age=user_data.age,
             income=user_data.income,
-            gender=user_data.gender,
-            is_student=user_data.is_student
+            gender=user_data.gender
+            
         )
         
         # Save to eligibility history (pass schemes for storing IDs)

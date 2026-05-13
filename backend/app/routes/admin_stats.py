@@ -81,7 +81,6 @@ def get_recent_eligibility_checks(
                 "age": check.age,
                 "income": check.income,
                 "gender": check.gender,
-                "is_student": check.is_student,
                 "eligible_count": check.eligible_count,
                 "created_at": check.created_at.isoformat() if check.created_at else None
             })

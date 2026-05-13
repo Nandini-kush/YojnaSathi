@@ -230,8 +230,7 @@ class APITester:
             payload = {
                 "age": 25,
                 "income": 50000,
-                "gender": "male",
-                "is_student": False
+                "gender": "male"
             }
             resp = requests.post(
                 f"{self.base_url}/schemes/check-eligibility",

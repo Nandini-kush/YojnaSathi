@@ -82,8 +82,7 @@ protected_endpoints = [
     ("POST", "/schemes/check-eligibility", {
         "age": 25,
         "income": 500000,
-        "gender": "M",
-        "is_student": False
+        "gender": "M"
     })
 ]
 

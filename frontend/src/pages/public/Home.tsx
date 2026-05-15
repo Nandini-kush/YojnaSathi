@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight, Shield, CheckSquare, Lightbulb, User, Search, CheckCircle, Zap, ArrowUpRight } from 'lucide-react';
 import Footer from '@/components/layout/Footer';
-import logo from '@/assets/yojnasathi_logo.png';
+import Logo from '@/components/common/Logo';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -29,12 +29,9 @@ const Home: React.FC = () => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/70 border border-white shadow-sm backdrop-blur-md mb-4"
+            className="mb-4"
           >
-            <img src={logo} alt="YojnaSathi" className="h-6 w-auto" />
-            <span className="text-sm font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-              YojnaSathi Platform 2.0
-            </span>
+            <Logo size="lg" />
           </motion.div>
 
           {/* Heading */}

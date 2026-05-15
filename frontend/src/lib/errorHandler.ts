@@ -4,21 +4,7 @@
  * Ensures error state is ALWAYS a string
  */
 
-interface FastAPIError {
-  detail?: string | Array<{
-    type?: string;
-    loc?: (string | number)[];
-    msg?: string;
-    input?: any;
-  }>;
-  message?: string;
-  error?: string;
-}
 
-interface AxiosErrorResponse {
-  status: number;
-  data: FastAPIError | any;
-}
 
 /**
  * Extract error message from FastAPI validation error

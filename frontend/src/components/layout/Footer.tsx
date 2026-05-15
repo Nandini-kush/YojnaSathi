@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MapPin, Phone, Github, Linkedin, Twitter } from 'lucide-react';
+import Logo from '@/components/common/Logo';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -12,12 +13,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">Y</span>
-              </div>
-              <span className="text-xl font-bold text-white">YojnaSathi</span>
-            </div>
+            <Logo size="sm" />
             <p className="text-sm text-gray-400">
               Simplifying government scheme eligibility checking for all Indians.
             </p>

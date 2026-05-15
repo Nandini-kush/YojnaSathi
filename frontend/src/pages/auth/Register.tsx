@@ -5,7 +5,7 @@ import { Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck, Arro
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/context/authStore";
 import { authAPI } from "@/lib/api";
-import logo from "@/assets/yojnasathi_logo.png";
+import Logo from "@/components/common/Logo";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -155,7 +155,7 @@ export default function Register() {
         >
           {/* Mobile Logo */}
           <div className="flex lg:hidden justify-center mb-8">
-             <img src={logo} alt="YojnaSathi" className="h-16 w-auto" />
+             <Logo size="lg" />
           </div>
 
           <div className="space-y-2 text-center lg:text-left">

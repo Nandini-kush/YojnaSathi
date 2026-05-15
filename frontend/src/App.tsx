@@ -12,8 +12,8 @@ import AdminDashboard from '@pages/admin/AdminDashboard';
 import EligibilityCheck from '@pages/dashboard/EligibilityCheck';
 import History from '@pages/dashboard/History';
 import Recommendations from '@pages/dashboard/Recommendations';
-import SchemeDetail from '@pages/dashboard/SchemeDetail';
-import Profile from '@pages/dashboard/Profile';
+import SchemeDetail from '@pages/schemes/SchemeDetail';
+import Profile from '@pages/profile/Profile';
 import NotFoundPage from '@pages/public/NotFoundPage';
 
 // Components

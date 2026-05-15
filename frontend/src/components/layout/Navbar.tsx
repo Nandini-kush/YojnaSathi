@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '@context/authStore';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import Logo from '@/components/common/Logo';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,13 +23,9 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Y</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900 hidden sm:inline">
-              YojnaSathi
-            </span>
+          <Link to="/">
+            <Logo size="md" className="hidden sm:flex" />
+            <Logo size="sm" className="flex sm:hidden" />
           </Link>
 
           {/* Desktop Menu */}

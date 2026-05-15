@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle, ExternalLink, FileText, CheckCircle, Info, Landmark } from "lucide-react";
-import { schemesAPI } from "@/api";
+import { schemesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { SchemeDetailResponse, SchemeData } from "@/types/api";
-import logo from "@/assets/yojnasathi_logo.png";
+import Logo from "@/components/common/Logo";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -198,9 +198,8 @@ export default function SchemeDetail() {
             <ArrowLeft size={18} />
             Back to Results
           </button>
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <img src={logo} alt="YojnaSathi" className="h-8" />
-            <span className="font-bold text-slate-900 hidden sm:inline">YojnaSathi</span>
+          <div className="cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <Logo size="md" />
           </div>
         </div>
       </header>

@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from "@/context/authStore";
 import { adminAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import logo from "@/assets/yojnasathi_logo.png";
+import Logo from "@/components/common/Logo";
 
 interface AdminStats {
   total_users: number;
@@ -132,8 +132,8 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="border-b border-slate-700 bg-slate-900/50 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onClick={() => navigate("/admin")}>
-            <img src={logo} alt="YojnaSathi Logo" className="h-10 w-auto object-contain" />
+          <div className="cursor-pointer hover:opacity-80 transition" onClick={() => navigate("/admin")}>
+            <Logo size="md" />
           </div>
 
           <div className="flex items-center gap-4">

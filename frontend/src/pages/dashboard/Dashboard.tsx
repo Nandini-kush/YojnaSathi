@@ -22,7 +22,7 @@ import { userAPI, schemesAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { extractErrorMessage } from "@/lib/errorHandler";
 import { SchemeRecommendation } from "@/types/api";
-import logo from "@/assets/yojnasathi_logo.png";
+import Logo from "@/components/common/Logo";
 
 interface UserProfile {
   age: number;
@@ -142,9 +142,8 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/dashboard")}>
-              <img src={logo} alt="YojnaSathi Logo" className="h-8 w-auto" />
-              <span className="font-bold text-lg text-slate-900 hidden sm:block">YojnaSathi Dashboard</span>
+            <div className="cursor-pointer" onClick={() => navigate("/dashboard")}>
+              <Logo size="md" />
             </div>
 
             {/* Desktop Nav */}

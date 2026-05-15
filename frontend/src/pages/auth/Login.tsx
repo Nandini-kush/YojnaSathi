@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/context/authStore";
-import { authAPI, apiDiagnostics } from "@/api";
-import logo from "@/assets/yojnasathi_logo.png";
+import { authAPI } from "@/lib/api";
+import Logo from "@/components/common/Logo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,7 +31,7 @@ export default function Login() {
         return;
       }
 
-      const response = await authAPI.login(email, password);
+      const response = await authAPI.login({ email, password });
       
       if (response && response.access_token) {
         setToken(response.access_token);
@@ -145,7 +145,7 @@ export default function Login() {
         >
           {/* Mobile Logo */}
           <div className="flex lg:hidden justify-center mb-8">
-             <img src={logo} alt="YojnaSathi" className="h-16 w-auto" />
+             <Logo size="lg" />
           </div>
 
           <div className="space-y-2 text-center lg:text-left">
@@ -239,15 +239,6 @@ export default function Login() {
             </button>
           </div>
 
-          {import.meta.env.DEV && (
-            <button
-              type="button"
-              onClick={() => apiDiagnostics.checkStatus()}
-              className="w-full text-xs font-medium text-slate-500 hover:text-slate-800 py-2 transition-colors"
-            >
-              🔧 Check API Status
-            </button>
-          )}
 
           <p className="text-center text-sm font-medium text-slate-600">
             Don't have an account?{" "}
